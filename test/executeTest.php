@@ -457,7 +457,6 @@ class nomalTest extends TestCase
         $curentSheet = self::$data_obj->getSheetByName($sheet_name);
         $curentSheet->setCellValue(self::$location_last_column.$row, $content);
         $curentSheet->getStyle(self::$location_last_column.$row)->getFont()->getColor()->setARGB($color);
-        $a=$curentSheet->getStyle(self::$location_last_column.($row-1))->getBorders();
         try {
             self::$writer = Excel::createWriter(self::$data_obj, "Xlsx");
             $this->changed = true;

@@ -16,12 +16,18 @@ class validName
 				return 0;
 			}				
 		}
-		if (strlen($val)>20 ) 
+		if (strlen($val)>10 ) 
 		{
 			$err[]	      = self::err("name","null","long text","ERROR");
 			return 1;
 		}
 		return 0;
+	}
+	function err($name,$how,$why,$level)
+	{
+		$err = array( "what" => $name, "how" => $how, "why" => $why, "level" => $level );
+
+		return $err;
 	}
 } 
 ?>
