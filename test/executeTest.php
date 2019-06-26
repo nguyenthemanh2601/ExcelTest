@@ -1,22 +1,22 @@
 <?php
-namespace ExcelTest\Test;
-
+require_once './.config.php';
+require_once './vendor/autoload.php';
 use PhpOffice\PhpSpreadsheet\IOFactory as Excel;
 use PHPUnit\Framework\TestCase;
 use Colors\Display;
 use PhpOffice\PhpSpreadsheet\Style\Color;
-class ExcelTest extends TestCase
+class nomalTest extends TestCase
 {
     public $test_file_dir, $test_class, $test_directory, $arr_file_to_test, $duplicated_key, $changed;
     public static $curent_file, $data_obj, $location_last_column, $writer;
-    public function __construct()
+    public function setUp():void
     {
+        $this->test_file_dir    = TEST_FILE_DIR;
+        $this->test_directory   = LIB_DIR;
         $this->arr_file_to_test = [];
         $this->duplicated_key   = [];
     }
-    public function test($excel_dir, $test_dir){
-        $this->test_file_dir    = $excel_dir;//directory containing excel file 
-        $this->test_directory   = $test_dir;//directory containing the classes to test
+    public function testMain(){
         $all_file = $this->scanExcelFile($this->test_file_dir);
         $include_file = function ($file){
             $status = include_once $file;
@@ -43,9 +43,20 @@ class ExcelTest extends TestCase
         foreach ($sheet_names as $key => $value) {
             if($value != 'Guide')
             {
-                $arr_sheets[$value] = self::$data_obj->getSheetByName($value)->toArray();  
+                $arr_sheets[$value] = self::$data_obj->getSheetByName($value)->toArray();                
+                // $arr_sheets[$value] = $data_obj->getSheetByName($value);
             }
         }
+        // foreach ($arr_sheets as $key_sheets => $value_sheets) {
+        //     foreach ($value_sheets->getRowIterator() as $key_rows => $value_rows) {
+        //         foreach ($value_rows->getCellIterator() as $k => $v) {
+        //             if($v->isMergeRangeValueCell()){
+        //                 echo $v->getMergeRange()."=>".$v->getValue()."\n";
+        //             }
+        //         }
+        //     }
+        // }die;
+        
         // remove empty row
         foreach ($arr_sheets as $key_sheets => $value_sheets) {
             foreach ($value_sheets as $key_rows => $value_rows) {
@@ -125,6 +136,12 @@ class ExcelTest extends TestCase
                                 $cell=$this->convertType($cell);
                                 $input[$header[$key_cell]] = $cell;
                             }
+                            // modify by thanhtd
+                            //elseif (preg_match('/^new/',trim($cell))) {
+                            //    $classInstance = null;
+                            //    $this->convertOject($cell, $classInstance);
+                            //    $input[$header[$key_cell]] = $classInstance;
+                            //}
                             else{
                                 $cell = $this->convertSpecicalType($cell);
                                 $input[$header[$key_cell]] = $cell;

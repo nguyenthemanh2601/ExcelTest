@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="vendor/autoload.php"
+         colors="true"
+         convertErrorsToExceptions="false"
+         convertNoticesToExceptions="false"
+         convertWarningsToExceptions="false"
+         processIsolation="false"
+         stopOnFailure="false"
+		 stopOnError="false">
+	<testsuites>
+		<testsuite name="Excel_test">
+			<directory>./test</directory>
+			<!-- <file>./tests/Excel_test/validPersonTest.php</file> -->
+		</testsuite>
+	</testsuites>
+	<filter>
+		<whitelist processUncoveredFilesFromWhitelist="true">
+			<directory suffix=".php">./lib</directory>
+            <exclude>
+                <directory suffix=".php">./vendor</directory>
+            </exclude>
+		</whitelist>
+	</filter>
+    <logging>
+	    <log type="coverage-html" target="./code-coverage/"/>
+        <log type="coverage-text" target="php://stdout" showUncoveredFiles="true"/>
+  </logging>
+</phpunit>

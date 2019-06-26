@@ -1,0 +1,1 @@
+C:37:"PHPUnit\Runner\DefaultTestResultCache":206:{a:2:{s:7:"defects";a:2:{s:34:"ExcelTest\Test\nomalTest::testMain";i:3;s:19:"nomalTest::testMain";i:4;}s:5:"times";a:2:{s:34:"ExcelTest\Test\nomalTest::testMain";d:0.965;s:19:"nomalTest::testMain";d:0.979;}}}
