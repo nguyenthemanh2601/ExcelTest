@@ -1,0 +1,25 @@
+{
+    "name": "ExcelTest",
+    "description": "Testing php with excel file",
+    "type": "library",
+    "keywords": [
+        "ExcelTest"
+    ],
+    "authors": [
+        {
+            "name": "Nguyễn Thế Mạnh",
+            "email": "hoangtupro.a4@gmail.com",
+            "role": "dev"
+        }
+    ],
+    "require": {
+        "php": "^7.2",
+        "phpoffice/phpspreadsheet": "^1.7",
+        "phpunit/phpunit": "8.2"
+    },
+    "autoload-dev": {
+        "classmap": [
+            "src/"
+        ]
+    }
+}
