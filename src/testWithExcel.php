@@ -1,5 +1,6 @@
 <?php
-require_once './vendor/autoload.php';
+namespace ExcelTest\Test;
+
 use PhpOffice\PhpSpreadsheet\IOFactory as Excel;
 use PHPUnit\Framework\TestCase;
 use Colors\Display;
@@ -8,14 +9,14 @@ class ExcelTest extends TestCase
 {
     public $test_file_dir, $test_class, $test_directory, $arr_file_to_test, $duplicated_key, $changed;
     public static $curent_file, $data_obj, $location_last_column, $writer;
-    public function setUp():void
+    public function __construct()
     {
-        $this->test_file_dir    = TEST_FILE_DIR;//directory containing excel file 
-        $this->test_directory   = TOP_DIR;//directory containing the classes to test
         $this->arr_file_to_test = [];
         $this->duplicated_key   = [];
     }
-    public function testMain(){
+    public function test($excel_dir, $test_dir){
+        $this->test_file_dir    = $excel_dir;//directory containing excel file 
+        $this->test_directory   = $test_dir;//directory containing the classes to test
         $all_file = $this->scanExcelFile($this->test_file_dir);
         $include_file = function ($file){
             $status = include_once $file;
