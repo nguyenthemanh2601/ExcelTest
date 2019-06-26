@@ -1,5 +1,5 @@
 {
-    "name": "ExcelTest/Tool",
+    "name": "excel/test",
     "description": "Testing php with excel file",
     "type": "library",
     "keywords": [
