@@ -1,5 +1,5 @@
 {
-    "name": "phpunit/phpexcel",
+    "name": "phpunittest/excel",
     "description": "Testing php with excel file",
     "type": "project",
     "keywords": [

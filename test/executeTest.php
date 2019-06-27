@@ -43,19 +43,9 @@ class nomalTest extends TestCase
         foreach ($sheet_names as $key => $value) {
             if($value != 'Guide')
             {
-                $arr_sheets[$value] = self::$data_obj->getSheetByName($value)->toArray();                
-                // $arr_sheets[$value] = $data_obj->getSheetByName($value);
+                $arr_sheets[$value] = self::$data_obj->getSheetByName($value)->toArray();
             }
         }
-        // foreach ($arr_sheets as $key_sheets => $value_sheets) {
-        //     foreach ($value_sheets->getRowIterator() as $key_rows => $value_rows) {
-        //         foreach ($value_rows->getCellIterator() as $k => $v) {
-        //             if($v->isMergeRangeValueCell()){
-        //                 echo $v->getMergeRange()."=>".$v->getValue()."\n";
-        //             }
-        //         }
-        //     }
-        // }die;
         
         // remove empty row
         foreach ($arr_sheets as $key_sheets => $value_sheets) {
@@ -93,7 +83,7 @@ class nomalTest extends TestCase
             $arr_variable_name = [];
             $header= array_shift($sheet);
             foreach ($header as $key_header => $value_header) {
-                if(is_null($value_header) || strtolower($value_header)=='test result'){
+                if(is_null($value_header) || strtolower($value_header) == 'test result'){
                     unset($header[$key_header]);
                 }
             }
@@ -136,12 +126,6 @@ class nomalTest extends TestCase
                                 $cell=$this->convertType($cell);
                                 $input[$header[$key_cell]] = $cell;
                             }
-                            // modify by thanhtd
-                            //elseif (preg_match('/^new/',trim($cell))) {
-                            //    $classInstance = null;
-                            //    $this->convertOject($cell, $classInstance);
-                            //    $input[$header[$key_cell]] = $classInstance;
-                            //}
                             else{
                                 $cell = $this->convertSpecicalType($cell);
                                 $input[$header[$key_cell]] = $cell;
@@ -299,22 +283,6 @@ class nomalTest extends TestCase
         if(preg_match('/^array/',trim($input))){
             if( rtrim(ltrim($input, 'array('),')') !== ""){
                 $convert_value = substr(trim($input),7,-2);
-                // if(preg_match('/^new/',$convert_value)) {
-                //    $convert_value = explode('),(',$convert_value);
-                //    if(count($convert_value) > 0) {
-                //        $classInstance = null;
-                //        $object_array = array();
-                //        foreach($convert_value as $value) {
-                //            $this->convertOject($value, $classInstance);
-                //            array_push($object_array, $classInstance);
-                //        }
-                //        $input = $object_array;
-                //        $hello = "Hello <br/>";
-                //        echo Display::caution("Array Object: " . $hello);
-                //        print_r($input);
-                //        return $input;
-                //    }
-                // }
                 $convert_value = explode('","',$convert_value);
                 $count = count($convert_value);
                 for($i=0; $i< $count; $i++){
@@ -329,19 +297,6 @@ class nomalTest extends TestCase
                             $count = count($convert_value);
                         }
                     }
-                    // elseif(preg_match('/"=>"new /', $convert_value[$i])) {
-                    //    $b = $convert_value[$i];
-                    //    for($j = $i;$j< $count; $j++){
-                    //        $c = $convert_value[$j];
-                    //        if(preg_match('/"\)$/',$convert_value[$j])) 
-                    //            break;
-                    //        $convert_value[$j] = $convert_value[$j] .'","' .$convert_value[$j+1];
-                    //        unset($convert_value[$j+1]);
-                    //        $convert_value = array_values($convert_value);
-                    //        $j--;
-                    //        $count = count($convert_value);
-                    //    }
-                    // }
                 }
                 $convert_value_result = [];
                 foreach ($convert_value as $key_convert_value => $value_convert_value) {
