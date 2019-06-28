@@ -5,9 +5,10 @@ use PhpOffice\PhpSpreadsheet\IOFactory as Excel;
 use PHPUnit\Framework\TestCase;
 use Colors\Display;
 use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 class nomalTest extends TestCase
 {
-    public $test_file_dir, $test_class, $test_directory, $arr_file_to_test, $duplicated_key, $changed;
+    public $test_file_dir, $test_class, $test_directory, $arr_file_to_test, $duplicated_key, $changed, $total_results, $err_cell;
     public static $curent_file, $data_obj, $location_last_column, $writer;
     public function setUp():void
     {
@@ -31,6 +32,7 @@ class nomalTest extends TestCase
         }
     }
     private function executeTest($file){
+        $cancel = 0;
         self::$curent_file = $file;
         self::$data_obj  = Excel::load($file);
         $arr_sheets = []; 
@@ -46,7 +48,6 @@ class nomalTest extends TestCase
                 $arr_sheets[$value] = self::$data_obj->getSheetByName($value)->toArray();
             }
         }
-        
         // remove empty row
         foreach ($arr_sheets as $key_sheets => $value_sheets) {
             foreach ($value_sheets as $key_rows => $value_rows) {
@@ -55,35 +56,31 @@ class nomalTest extends TestCase
                 }
             }
         }
-        // unset # column and get status 
-        $status = [];
-        foreach ($arr_sheets as $key_sheets => $value_sheets) {
-            if($key_sheets !== "constructor"){
-                foreach ($value_sheets as $key_rows => $value_rows) {
-                    array_shift($arr_sheets[$key_sheets][$key_rows]);
-                }
-                foreach ($value_sheets as $key_rows => $value_rows) {
-                    $status[] = array_shift($arr_sheets[$key_sheets][$key_rows]);
-                }
-            }
-        }
-        array_shift($status);
-        // unset type column 
-        foreach ($arr_sheets as $key_sheets => $value_sheets) {
-             if($key_sheets !== "constructor"){
-                foreach ($value_sheets as $key_rows => $value_rows) {
-                    array_shift($arr_sheets[$key_sheets][$key_rows]);
-                }
-            }
-        } 
         foreach ($arr_sheets as $key_sheet => $sheet) {
+            // unset # column and get status 
+            $status = [];
+            if($key_sheet !== "constructor"){
+                foreach ($sheet as $key_rows => $value_rows) {
+                    array_shift($sheet[$key_rows]);
+                }
+                foreach ($sheet as $key_rows => $value_rows) {
+                    $status[] = array_shift($sheet[$key_rows]);
+                }
+            }
+            array_shift($status);
+            // unset type column 
+            if($key_sheet !== "constructor"){
+                foreach ($sheet as $key_rows => $value_rows) {
+                    array_shift($sheet[$key_rows]);
+                }
+            }
             $this->changed = false;
             $num_expected = 0;
             $arr_expected_name = [];
             $arr_variable_name = [];
             $header= array_shift($sheet);
             foreach ($header as $key_header => $value_header) {
-                if(is_null($value_header) || strtolower($value_header) == 'test result'){
+                if(is_null($value_header) || strtolower($value_header)=='test result'){
                     unset($header[$key_header]);
                 }
             }
@@ -105,6 +102,9 @@ class nomalTest extends TestCase
                 if(is_null($status[$key_row])){
                     $input = [];
                     $expected = [];
+                    $this->total_results = [];
+                    $this->total_results['Success'] = 0;
+                    $this->total_results['Fail'] = 0;
                     foreach ($row as $key_cell => $cell) {
                         if(!isset($header[$key_cell])){
                             unset($sheet[$key_row][$key_cell]);
@@ -112,7 +112,7 @@ class nomalTest extends TestCase
                         }
                         if($key_cell < $num_expected){
                             if(preg_match('/^array/',trim($cell))){
-                                $cell=$this->convertType($cell);
+                                $cell=$this->convertArray($cell);
                                 $expected[$header[$key_cell]] = $cell;
                             }
                             else{
@@ -123,7 +123,7 @@ class nomalTest extends TestCase
                         else{
                             // replate array variables
                             if(preg_match('/^array/',trim($cell))){
-                                $cell=$this->convertType($cell);
+                                $cell=$this->convertArray($cell);
                                 $input[$header[$key_cell]] = $cell;
                             }
                             else{
@@ -153,7 +153,7 @@ class nomalTest extends TestCase
                             $all_duplicated .= $value_duplicated_key_expected .',';
                         }
                         $all_duplicated = rtrim($all_duplicated,',');
-                        echo Display::caution("\n\nduplicated key:[".$all_duplicated. "] in line ".($key_row+2) ." inside sheet: \"$key_sheet\", file: \"" .substr(strrchr($file, "/"), 1) ."\":\n" );
+                        echo Display::error("\n\nduplicated key:[".$all_duplicated. "] in line ".($key_row+2) ." inside sheet: \"$key_sheet\", file: \"" .substr(strrchr($file, "/"), 1) ."\":\n" );
                         print_r($expected);
                     }
                     else {
@@ -168,11 +168,15 @@ class nomalTest extends TestCase
                             $result = call_user_func_array([$class_name_instance,$key_sheet], $input);
                             try {
                                 $this->assertEquals($expected[array_key_first($expected)], $result);
-                                $this->writeResult($key_sheet, $key_row+2, 'Success');
+                                $this->total_results['Success'] += 1;
+                                $this->writeResult($key_sheet, $key_row+2, $this->calculate_results());
                             } 
                             catch (Exception $e) {
                                 echo "\n".Display::error(rtrim(rtrim($e->getMessage(),'.'),'.')  ."(File: \"" .substr(strrchr($file, "/"), 1) ."=>Sheet: \"$key_sheet\"=>Row: ".($key_row+2) .")");
-                                $this->writeResult($key_sheet, $key_row+2, 'Fail');
+                                $this->total_results['Fail'] += 1;
+                                $cell = self::$data_obj->getSheetByName($key_sheet)->getCellByColumnAndRow(4,$key_row+2)->getCoordinate();
+                                $this->err_cell[$key_sheet][] = $cell;
+                                $this->writeResult($key_sheet, $key_row+2, $this->calculate_results());
                             }
                             if(count($arr_expected_name)>1){
                                 array_shift($expected);
@@ -184,10 +188,15 @@ class nomalTest extends TestCase
                                     if(is_array($value_expected)){
                                         try {
                                             $this->assertArraySubset($value_expected, $input[$key_expected]);
-                                            $this->writeResult($key_sheet, $key_row+2, 'Success');
+                                            $this->total_results['Success'] += 1;
+                                            $this->writeResult($key_sheet, $key_row+2, $this->calculate_results());
                                         }
                                         catch (Exception $e) {
-                                            $this->writeResult($key_sheet, $key_row+2, 'Fail');
+                                            $this->total_results['Fail'] += 1;
+                                            $cell = array_search("Expected ".ltrim($key_expected,'&'),$header) + 4;
+                                            $cell = self::$data_obj->getSheetByName($key_sheet)->getCellByColumnAndRow($cell,$key_row+2)->getCoordinate();
+                                            $this->err_cell[$key_sheet][] = $cell;
+                                            $this->writeResult($key_sheet, $key_row+2, $this->calculate_results());
                                             $message = $e->getMessage();
                                             $str1 = strstr($message,'(',true);
                                             $str2 = ltrim($message,$str1);
@@ -199,11 +208,16 @@ class nomalTest extends TestCase
                                     else{
                                         try {
                                             $this->assertEquals($value_expected, $input[$key_expected]);
-                                            $this->writeResult($key_sheet, $key_row+2, 'Success');
+                                            $this->total_results['Success'] += 1;
+                                            $this->writeResult($key_sheet, $key_row+2, $this->calculate_results());
                                         } 
                                         catch (Exception $e) {
                                             echo "\n".Display::error(rtrim($e->getMessage(),'.')  ."(File: \"" .substr(strrchr($file, "/"), 1) ."=>Sheet: \"$key_sheet\"=>Row: ".($key_row+2) .")");
-                                            $this->writeResult($key_sheet, $key_row+2, 'Fail');
+                                            $this->total_results['Fail'] += 1;
+                                            $cell = array_search("Expected ".ltrim($key_expected,'&'),$header) + 4;
+                                            $cell = self::$data_obj->getSheetByName($key_sheet)->getCellByColumnAndRow($cell,$key_row+2)->getCoordinate();
+                                            $this->err_cell[$key_sheet][] = $cell;
+                                            $this->writeResult($key_sheet, $key_row+2, $this->calculate_results());
                                         }
                                     }
                                 }
@@ -215,18 +229,17 @@ class nomalTest extends TestCase
                     $this->writeResult($key_sheet, $key_row+2, 'Skip');
                 }
             }
+            foreach ($status as $key_status => $value_status) {
+                if($value_status){
+                    $cancel++;
+                }
+            }
             if($this->changed){
                 $this->saveChange();
             }
         }
-        $cancle =0;
-        foreach ($status as $key => $value) {
-            if(!is_null($value)){
-                $cancle++;
-            }
-        }
-        if($cancle>0){
-            echo Display::warning("\nSkip $cancle");
+        if($cancel>0){
+            echo Display::warning("\nSkip $cancel");
         }
     }
     private function scanExcelFile($dir){
@@ -265,19 +278,14 @@ class nomalTest extends TestCase
             $explode[$key] = trim($value);
         }
         return implode("=>",$explode);
-    }    
-    private function convertType($input) {
+    }
+    private function convertArray($input) {
         $input = $this->trimSpace($input);
         if(is_numeric($input)){
-            if(preg_match("/[.]+/",$input)){
-                $input= (double)$input;
-            }
-            else{
-                $input= (int)$input;
-            }
+            $input= (int)$input;
         }
-        elseif ($input === 'true' || $input=='false') {$input = (bool)$input;}
-        elseif ($input === 'null')                    {$input = null;}
+        elseif (strtolower($input) === 'true' || strtolower($input)=='false') {$input = (bool)$input;}
+        elseif (strtolower($input) === 'null')                    {$input = null;}
         elseif ('(float)'.ltrim($input,'(float)') === $input )   {$input = (float)ltrim($input, '(float)');}
         elseif ('(double)'.$input === ltrim($input,'(double)'))  {$input = (double)ltrim($input, '(double)');}
         if(preg_match('/^array/',trim($input))){
@@ -302,13 +310,13 @@ class nomalTest extends TestCase
                 foreach ($convert_value as $key_convert_value => $value_convert_value) {
                     if(preg_match('/^array/',explode('"=>"', $value_convert_value)[1])){
                         $convert = ltrim($convert_value[$key_convert_value],explode('"=>"',$value_convert_value)[0].'"=>"');
-                        $convert_value[$key_convert_value] = $this->convertType($convert);
+                        $convert_value[$key_convert_value] = $this->convertArray($convert);
                         $new_key = explode('"=>"', $value_convert_value)[0];
                         $new_value = $convert_value[$key_convert_value];
                     }
                     else{
                         $new_key = explode('"=>"', $value_convert_value)[0];
-                        $new_value = explode('"=>"', $value_convert_value)[1];
+                        $new_value = $this->convertSpecicalType(explode('"=>"', $value_convert_value)[1]);
                     }
                     if(isset($convert_value_result[$new_key])){
                         $convert_value_result['++'.$new_key] = $new_value;
@@ -324,6 +332,14 @@ class nomalTest extends TestCase
             else{
                 return [];
             }
+        }
+    }
+    private function calculate_results(){
+        if( $this->total_results['Fail'] != 0){
+            return 'Fail';
+        }
+        else{
+            return 'Success';
         }
     }
     private function check_duplicated_key (&$array) {
@@ -355,19 +371,19 @@ class nomalTest extends TestCase
             $input = trim($input);
         }
         if (strtoupper($input)==='NULL') { $input = null; }
-            elseif($input==='"true"' || $input==='"false"'|| $input==="'true'" || $input==="'false'") {
-                $input = trim($input, '"');
-                $input = trim($input, "'");
+        elseif($input==='"true"' || $input==='"false"'|| $input==="'true'" || $input==="'false'") {
+            $input = trim($input, '"');
+            $input = trim($input, "'");
+        }
+        elseif ('(float)'.ltrim($input,'(float)') === $input ) {
+             $input = (float)ltrim($input, '(float)'); 
             }
-            elseif ('(float)'.ltrim($input,'(float)') === $input ) {
-                 $input = (float)ltrim($input, '(float)'); 
-                }
-            elseif ('(double)'.$input === ltrim($input,'(double)')) { 
-                $input = (double)ltrim($input, '(double)'); 
-            }
-            elseif($input===null){
-                $input = "";
-            }
+        elseif ('(double)'.$input === ltrim($input,'(double)')) { 
+            $input = (double)ltrim($input, '(double)'); 
+        }
+        elseif($input===null){
+            $input = "";
+        }
         return $input;
     }
 
@@ -389,19 +405,20 @@ class nomalTest extends TestCase
     }
 
     private function writeResult($sheet_name, $row, $type = null){
+        $arr_color = ['ok' => Color::COLOR_GREEN, 'fail' => Color::COLOR_RED, 'skip'=> Color::COLOR_DARKYELLOW];
         if($type){
             switch (strtolower($type)) {
                 case 'success':
                     $content = 'Success';
-                    $color = Color::COLOR_GREEN;
+                    $color = $arr_color['ok'];
                     break;
                 case 'fail':
                     $content = 'Fail';
-                    $color = Color::COLOR_RED;
+                    $color = $arr_color['fail'];
                     break;
                 case 'skip':
                     $content = 'Skip';
-                    $color = Color::COLOR_DARKYELLOW;
+                    $color = $arr_color['skip'];
                     break;
             }
         }
@@ -411,18 +428,30 @@ class nomalTest extends TestCase
         }
         $curentSheet = self::$data_obj->getSheetByName($sheet_name);
         $curentSheet->setCellValue(self::$location_last_column.$row, $content);
-        $curentSheet->getStyle(self::$location_last_column.$row)->getFont()->getColor()->setARGB($color);
-        try {
-            self::$writer = Excel::createWriter(self::$data_obj, "Xlsx");
-            $this->changed = true;
-        } 
-        catch (Exception $e) {
-            echo $e->getMessage();            
-            echo Display::error("\nMake sure you closed this file");exit;
+        $cell_style = $curentSheet->getStyle(self::$location_last_column.$row);
+        $cell_style->getFont()->getColor()->setARGB($color);
+        if($content=='Test result'){
+           $previous_color = $curentSheet->getStyle('A'.$row)->getFill()->getStartColor()->getARGB();
+           $curentSheet->getStyle(self::$location_last_column.$row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($previous_color);
         }
+        self::$writer = Excel::createWriter(self::$data_obj, "Xlsx");
+        $this->changed = true;
     }
 
     private function saveChange(){
-        self::$writer->save(self::$curent_file);
+        if(!empty($this->err_cell)){
+            foreach ($this->err_cell as $key => $value) {
+                $curentSheet = self::$data_obj->getSheetByName($key);
+                foreach ($value as $k => $v) {
+                    $curentSheet->getStyle($v)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('f25757');
+                }
+            }
+        }
+        try {
+            self::$writer->save(self::$curent_file);
+        } catch (Exception $e) {
+            echo $e->getMessage();
+            echo Display::error("\nCan not change file, make sure you closed this file");exit;
+        }
     }
 }
